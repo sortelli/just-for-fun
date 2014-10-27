@@ -11,13 +11,13 @@ def print_board(board)
 end
 
 def remove_invalid(board, parent_col)
-  board.each {|r| r[parent_col] = 'X'}
+  board.each {|r| r[parent_col] = '.'}
   board.each_with_index do |r, i|
     x = parent_col + i + 1
     y = parent_col - i - 1
 
-    r[x] = 'X' if x < r.length
-    r[y] = 'X' if y >= 0
+    r[x] = '.' if x < r.length
+    r[y] = '.' if y >= 0
   end
 end
 
@@ -39,7 +39,7 @@ def place_queen(board)
       remove_invalid board, i
 
       if b = place_queen(board)
-        row.each_with_index {|c, i| row[i] = 'X' if c == '-'}
+        row.each_with_index {|c, i| row[i] = '.' if c == '-'}
         return b.unshift(row)       
       end
 
