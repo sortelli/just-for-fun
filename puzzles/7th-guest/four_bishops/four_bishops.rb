@@ -64,7 +64,7 @@ def print_move(move)
   puts("Move %s from %s to %s" % [move[:piece], move[:from], move[:to]])
 end
 
-def legalMoves(context, board)
+def legalMoves(context, board, prevState)
   moves = []
 
   board[:pieces].map do |p|
@@ -77,8 +77,9 @@ def legalMoves(context, board)
       toSquare    = m
       newState[p] = toSquare
 
-      unless context[:moves].any? {|c| c[:state] == newState}
-        moves << {:piece => p, :from => fromSquare, :to => toSquare, :state => newState}
+      unless prevState.include?(newState)
+        moves << {:piece => p, :from => fromSquare, :to => toSquare}
+        prevState << newState
       end
     end
   end
@@ -86,8 +87,8 @@ def legalMoves(context, board)
   moves
 end
 
-def nextMove(context, board)
-  legalMoves(context, board).map do |m|
+def nextMove(context, board, prevState)
+  legalMoves(context, board, prevState).map do |m|
     newContext = context.dup
     newContext[:moves] = newContext[:moves].dup << m
     newContext[:state][m[:piece]] = m[:to]
@@ -97,7 +98,8 @@ def nextMove(context, board)
   end
 end
 
-contexts = [[startingContext]]
+contexts  = [[startingContext]]
+prevState = []
 
 loop do
   contexts.last.each do |c|
@@ -108,6 +110,6 @@ loop do
     end
   end
 
-  contexts.push(contexts.last.map {|c| nextMove(c, board)}.flatten)
+  contexts.push(contexts.last.map {|c| nextMove(c, board, prevState)}.flatten)
   p contexts.length
 end
