@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require 'awesome_print'
+
 board = {}
 
 board[:a1] = [:b2, :c3, :d4]
@@ -91,7 +93,7 @@ def nextMove(context, board, prevState)
   legalMoves(context, board, prevState).map do |m|
     newContext = context.dup
     newContext[:moves] = newContext[:moves].dup << m
-    newContext[:state][m[:piece]] = m[:to]
+    newContext[:state] = newContext[:state].merge(m[:piece] => m[:to])
     
     #$stderr.print "."
     newContext
@@ -111,5 +113,9 @@ loop do
   end
 
   contexts.push(contexts.last.map {|c| nextMove(c, board, prevState)}.flatten)
-  p contexts.length
+
+p contexts.length
+ap contexts.last
+
+  raise "wtf, didn't solve it" if contexts.last.size == 0
 end
