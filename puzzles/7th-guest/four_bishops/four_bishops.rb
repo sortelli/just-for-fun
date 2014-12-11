@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'awesome_print'
-
 board = {}
 
 board[:a1] = [:b2, :c3, :d4]
@@ -78,10 +76,11 @@ def legalMoves(context, board, prevState)
       fromSquare  = newState[p]
       toSquare    = m
       newState[p] = toSquare
+      stateKey    = newState.keys.sort.map {|k| newState[k]}.join(",")
 
-      unless prevState.include?(newState)
+      unless prevState.has_key?(stateKey)
         moves << {:piece => p, :from => fromSquare, :to => toSquare}
-        prevState << newState
+        prevState[stateKey] = true
       end
     end
   end
@@ -95,15 +94,19 @@ def nextMove(context, board, prevState)
     newContext[:moves] = newContext[:moves].dup << m
     newContext[:state] = newContext[:state].merge(m[:piece] => m[:to])
     
-    #$stderr.print "."
     newContext
   end
 end
 
 contexts  = [[startingContext]]
-prevState = []
+prevState = {}
 
 loop do
+  puts("Checking for solutions that take %2d moves. %5d new board states" % [
+    contexts.length - 1,
+    contexts.last.length
+  ])
+
   contexts.last.each do |c|
     if isSolved(c, board)
       puts "\nSolved"
@@ -113,9 +116,6 @@ loop do
   end
 
   contexts.push(contexts.last.map {|c| nextMove(c, board, prevState)}.flatten)
-
-p contexts.length
-ap contexts.last
 
   raise "wtf, didn't solve it" if contexts.last.size == 0
 end
