@@ -72,7 +72,14 @@ def legalMoves(context, board)
     illegal = occupied + board[:enemies][p].map {|a| board[context[:state][a]]}.flatten
 
     (board[context[:state][p]] - illegal).each do |m|
-      moves << {:piece => p, :from => context[:state][p], :to => m} 
+      newState    = context[:state].dup
+      fromSquare  = newState[p]
+      toSquare    = m
+      newState[p] = toSquare
+
+      unless context[:moves].any? {|c| c[:state] == newState}
+        moves << {:piece => p, :from => fromSquare, :to => toSquare, :state => newState}
+      end
     end
   end
 
