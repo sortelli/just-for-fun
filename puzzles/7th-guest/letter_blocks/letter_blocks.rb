@@ -17,7 +17,7 @@ class Board
     :verticalLeft     => [0, 3, 6],
     :verticalMiddle   => [1, 4, 7],
     :verticalRight    => [2, 5, 8]
-  end
+  }
 
   def initialize(blocks, legal_words, prev_state = Set.new)
     @blocks      = blocks
@@ -51,14 +51,14 @@ class Board
   end
 
   def next_moves(prev_moves)
-    @@word_indexes.inject({}) do |moves, (name, indexes)|
+    @@word_indexes.inject([]) do |moves, (name, indexes)|
       @@directions.each do |direction|
         new_blocks = shift_blocks direction, indexes
 
-        unless @prev_state.include? move
-          @prev_state.add move
+        unless @prev_state.include? new_blocks
+          @prev_state.add new_blocks
           moves.push({
-            :moves => moves + ["#{name}#{direction.capitalize}"],
+            :moves => prev_moves + ["#{name}#{direction.capitalize}"],
             :board => new_board(new_blocks),
           })
         end
@@ -120,4 +120,4 @@ File.open('three_letter_words.txt', 'r') do |file|
   end
 end
 
-solve legal_words, inital_blocks
+solve legal_words, initial_blocks
