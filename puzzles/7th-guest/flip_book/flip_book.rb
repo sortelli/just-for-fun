@@ -96,29 +96,35 @@ class Board
   end
 end
 
-example_start = [
- 1, 2, 4,
- 3, 4, 6,
- 6, 7, 0
-]
+def solve(start_cards)
+  start_board = Board.new start_cards
+  puts "Looking for solution for #{start_board.inspect}"
 
-contexts = [[{:moves => [], :board => Board.new(example_start)}]]
+  contexts = [[{:moves => [], :board => start_board}]]
 
-loop do
-  puts("Checking for solutions that take %3d moves. %5d new board states" % [
-    contexts.length - 1,
-    contexts.last.length
-  ])
-
-  contexts.last.each do |context|
-    if context[:board].solved?
-      puts "\nSolved"
-      puts context[:moves]
-      exit 0
+  loop do
+    puts("Checking for solutions that take %3d moves. %5d new board states" % [
+      contexts.length - 1,
+      contexts.last.length
+    ])
+  
+    contexts.last.each do |context|
+      if context[:board].solved?
+        puts "\nSolved:\n"
+        puts context[:moves].map {|m| "  #{m}"}
+        exit 0
+      end
     end
+  
+    contexts.push(contexts.last.map {|c| c[:board].next_moves(c[:moves])}.flatten)
+  
+    raise "wtf, didn't solve it" if contexts.last.size == 0
   end
-
-  contexts.push(contexts.last.map {|c| c[:board].next_moves(c[:moves])}.flatten)
-
-  raise "wtf, didn't solve it" if contexts.last.size == 0
 end
+
+starting_cards = (0..8).map do |index|
+  print "Enter card at position #{index}: "
+  $stdin.gets.to_i
+end
+
+solve starting_cards
