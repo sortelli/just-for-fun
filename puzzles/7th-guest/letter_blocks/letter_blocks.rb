@@ -75,14 +75,14 @@ class Board
     end
   end
 
-  def inspect
-    "<\n  %s %s %s\n  %s %s %s\n  %s %s %s\n>" % @blocks
+  def to_s
+    "<Board\n  %s %s %s\n  %s %s %s\n  %s %s %s\n>" % @blocks
   end
 end
 
 def solve(legal_words, start_blocks)
   start_board = Board.new start_blocks, legal_words
-  puts "Looking for solution for #{start_board.inspect}"
+  puts "Looking for solution for #{start_board}"
 
   contexts = [[{:moves => [], :board => start_board}]]
 
@@ -96,6 +96,7 @@ def solve(legal_words, start_blocks)
       if context[:board].solved?
         puts "\nSolved:\n"
         puts context[:moves].map {|m| "  #{m}"}
+        puts "\n#{context[:board]}"
         exit 0
       end
     end
