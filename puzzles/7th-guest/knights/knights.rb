@@ -22,6 +22,14 @@
 require 'set'
 
 class Board
+  @@indexes = [
+    :a5, :b5, :c5, :d5, :e5,
+    :a4, :b4, :c4, :d4, :e4,
+    :a3, :b3, :c3, :d3, :e3,
+    :a2, :b2, :c2, :d2, :e2,
+    :a1, :b1, :c1, :d1, :e1
+  ]
+
   @@legal_moves = {
     :a1 => [:b3, :c2],
     :a2 => [:b4, :c1, :c3],
@@ -62,7 +70,25 @@ class Board
   end
 
   def next_moves(prev_moves)
-    []
+    @@legal_moves.inject([]) do |moves, (start, ends)|
+      unless @knights[start].nil?
+        ends.select do |index|
+          @knights[index].nil?
+        end.each do |index|
+          new_knights = @knights.dup
+          temp = new_knights[start]
+          new_knights[start] = new_knights[index]
+          new_knights[index] = temp
+
+          moves.push({
+            :moves => prev_moves + ["#{start} to #{index}"],
+            :board => new_board(new_knights)
+          })
+        end
+      end
+
+      moves
+    end
   end
 
   def solved?
@@ -85,15 +111,7 @@ class Board
          a    b    c    d    e
     }
 
-    indexes = [
-      :a5, :b5, :c5, :d5, :e5,
-      :a4, :b4, :c4, :d4, :e4,
-      :a3, :b3, :c3, :d3, :e3,
-      :a2, :b2, :c2, :d2, :e2,
-      :a1, :b1, :c1, :d1, :e1
-    ]
-
-    fmt % @knights.values_at(*indexes)
+    fmt % @knights.values_at(*@@indexes)
   end
 end
 
