@@ -65,27 +65,30 @@ class Board
     raise "Illegal board layout" unless @cards.size == 9
   end
 
-  def all_moves
+  def next_moves(moves)
     @@possible_moves.map do |move_name, move_functions|
       new_cards = (0..8).map do |index|
         case
-          when move_functions.has_index?(index)
+          when move_functions.has_key?(index)
             @cards[index].send(move_functions[index])
           else
             @cards[index]
         end
       end
 
-      {:name => move_name, :board => Board.new(new_cards)}
-    end.reject do |move|
-      prev_state.include?(move[:board])
-    end.each do |board|
-      prev_state.add(move[:board])
-    end
+      next nil if @prev_state.include?(new_cards)
+      @prev_state.add new_cards
+
+      {:moves => moves + [move_name], :board => Board.new(new_cards, @prev_state)}
+    end.compact
   end
 
   def hash
     @cards.hash
+  end
+
+  def solved?
+    @cards.map {|c| c.to_i} == (0..8).to_a
   end
 
   def inspect
@@ -99,5 +102,23 @@ example_start = [
  6, 7, 0
 ]
 
-board = Board.new(example_start)
-p board
+contexts = [[{:moves => [], :board => Board.new(example_start)}]]
+
+loop do
+  puts("Checking for solutions that take %3d moves. %5d new board states" % [
+    contexts.length - 1,
+    contexts.last.length
+  ])
+
+  contexts.last.each do |context|
+    if context[:board].solved?
+      puts "\nSolved"
+      puts context[:moves]
+      exit 0
+    end
+  end
+
+  contexts.push(contexts.last.flatMap {|c| c[:board].next_moves(c[:moves])})
+
+  raise "wtf, didn't solve it" if contexts.last.size == 0
+end
