@@ -38,24 +38,24 @@ end
 
 class Board
   @@possible_moves = {
-    :horizontalTop    => [0, 1, 2],
-    :horizontalMiddle => [3, 4, 5],
-    :horizontalBottom => [6, 7, 8],
-    :verticalLeft     => [0, 3, 6],
-    :verticalMiddle   => [1, 4, 7],
-    :verticalRight    => [2, 5, 8]
+    :horizontalTopLeft     => [:next, 0, 1, 2],
+    :horizontalTopRight    => [:prev, 0, 1, 2],
+    :horizontalMiddleLeft  => [:next, 3, 4, 5],
+    :horizontalMiddleRight => [:prev, 3, 4, 5],
+    :horizontalBottomLeft  => [:next, 6, 7, 8],
+    :horizontalBottomRight => [:prev, 6, 7, 8],
+    :verticalLeftUp        => [:next, 0, 3, 6],
+    :verticalLeftDown      => [:prev, 0, 3, 6],
+    :verticalMiddleUp      => [:next, 1, 4, 7],
+    :verticalMiddleDown    => [:prev, 1, 4, 7],
+    :verticalRightUp       => [:next, 2, 5, 8],
+    :verticalRightDown     => [:prev, 2, 5, 8]
   }.inject({}) do |moves, (k, v)|
-    [
-      {:name => "Right", :move => :next},
-      {:name => "Left",  :move => :prev}
-    ].each do |m|
-      moves["#{k}#{m[:name]}".to_sym] = {
-        v[0] => m[:move],
-        v[1] => m[:move],
-        v[2] => m[:move],
-      }
-    end
-
+    moves[k] = {
+      v[1] => v[0],
+      v[2] => v[0],
+      v[3] => v[0]
+    }
     moves
   end
 
@@ -118,7 +118,7 @@ loop do
     end
   end
 
-  contexts.push(contexts.last.flatMap {|c| c[:board].next_moves(c[:moves])})
+  contexts.push(contexts.last.map {|c| c[:board].next_moves(c[:moves])}.flatten)
 
   raise "wtf, didn't solve it" if contexts.last.size == 0
 end
