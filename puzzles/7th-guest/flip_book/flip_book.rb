@@ -115,9 +115,9 @@ def solve(start_cards)
   end
 end
 
-starting_cards = (0..8).map do |index|
-  print "Enter card at position #{index}: "
-  $stdin.gets.to_i
+unless ARGV.size == 9 and ARGV.all? {|a| ("0".."8").include?(a)}
+  $stderr.puts "usage: #{File.basename(__FILE__)} card0..card8"
+  exit 1
 end
 
-solve starting_cards
+solve ARGV.map {|a| a.to_i}
