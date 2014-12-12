@@ -22,10 +22,6 @@ class Card
     Card.new((@value - 1) % 9)
   end
 
-  def hash
-    @value.hash
-  end
-
   def to_s
     @value.to_s
   end
@@ -76,15 +72,12 @@ class Board
         end
       end
 
-      next nil if @prev_state.include?(new_cards)
-      @prev_state.add new_cards
+      state_key = new_cards.map {|c| c.to_i}
+      next nil if @prev_state.include?(state_key)
+      @prev_state.add state_key
 
       {:moves => moves + [move_name], :board => Board.new(new_cards, @prev_state)}
     end.compact
-  end
-
-  def hash
-    @cards.hash
   end
 
   def solved?
