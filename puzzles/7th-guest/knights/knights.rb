@@ -80,10 +80,15 @@ class Board
           new_knights[start] = new_knights[index]
           new_knights[index] = temp
 
-          moves.push({
-            :moves => prev_moves + ["#{start} to #{index}"],
-            :board => new_board(new_knights)
-          })
+          state_key = new_knights.values_at(*@@indexes)
+          unless @prev_state.include?(state_key)
+            @prev_state.add(state_key)
+
+            moves.push({
+              :moves => prev_moves + ["#{start} to #{index}"],
+              :board => new_board(new_knights)
+            })
+          end
         end
       end
 
