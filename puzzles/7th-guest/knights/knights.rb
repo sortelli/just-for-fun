@@ -58,35 +58,42 @@ class Board
     :e5 => [:d3, :c4]
   }
 
-  def initialize(start_knights, end_knights, prev_state = Set.new)
+  @@legal_moves_to_square = @@legal_moves.inject(Hash.new do |h, x|
+    h[x] = []
+  end) do |h, (start, ends)|
+    ends.each do |end_index|
+      h[end_index] << start
+    end
+    h
+  end
+
+  def initialize(start_knights, end_knights, nil_index, prev_state = Set.new)
     @knights     = start_knights
     @end_knights = end_knights
+    @nil_index   = nil_index
     @prev_state  = prev_state
     raise "Illegal board layout" unless @knights.size == 25
   end
 
-  def new_board(new_knights)
-    Board.new(new_knights, @end_knights, @prev_state)
+  def new_board(new_knights, new_nil_index)
+    Board.new(new_knights, @end_knights, new_nil_index, @prev_state)
   end
 
   def next_moves(prev_moves)
-    @@legal_moves.inject([]) do |moves, (start, ends)|
-      end_index = ends.find {|index| @knights[index].nil?}
-      unless @knights[start].nil? || end_index.nil?
-        new_knights = @knights.dup
-        temp = new_knights[start]
-        new_knights[start] = new_knights[end_index]
-        new_knights[end_index] = temp
+    @@legal_moves_to_square[@nil_index].inject([]) do |moves, start_index|
+      new_knights = @knights.dup
+      temp = new_knights[start_index]
+      new_knights[start_index] = new_knights[@nil_index]
+      new_knights[@nil_index] = temp
 
-        state_key = new_knights.values_at(*@@indexes)
-        unless @prev_state.include?(state_key)
-          @prev_state.add(state_key)
+      state_key = new_knights.values_at(*@@indexes)
+      unless @prev_state.include?(state_key)
+        @prev_state.add(state_key)
 
-          moves.push({
-            :moves => prev_moves + ["#{start} to #{end_index}"],
-            :board => new_board(new_knights)
-          })
-        end
+        moves.push({
+          :moves => prev_moves + ["#{start_index} to #{@nil_index}"],
+          :board => new_board(new_knights, start_index)
+        })
       end
 
       moves
@@ -122,7 +129,8 @@ class Board
 end
 
 def solve(start_knights, end_knights)
-  start_board = Board.new start_knights, end_knights
+  nil_index, _ = start_knights.find {|_, v| v.nil?}
+  start_board = Board.new start_knights, end_knights, nil_index
   puts "Looking for solution for #{start_board}"
 
   contexts = [[{:moves => [], :board => start_board}]]
