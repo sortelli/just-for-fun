@@ -71,24 +71,21 @@ class Board
 
   def next_moves(prev_moves)
     @@legal_moves.inject([]) do |moves, (start, ends)|
-      unless @knights[start].nil?
-        ends.select do |index|
-          @knights[index].nil?
-        end.each do |index|
-          new_knights = @knights.dup
-          temp = new_knights[start]
-          new_knights[start] = new_knights[index]
-          new_knights[index] = temp
+      end_index = ends.find {|index| @knights[index].nil?}
+      unless @knights[start].nil? || end_index.nil?
+        new_knights = @knights.dup
+        temp = new_knights[start]
+        new_knights[start] = new_knights[end_index]
+        new_knights[end_index] = temp
 
-          state_key = new_knights.values_at(*@@indexes)
-          unless @prev_state.include?(state_key)
-            @prev_state.add(state_key)
+        state_key = new_knights.values_at(*@@indexes)
+        unless @prev_state.include?(state_key)
+          @prev_state.add(state_key)
 
-            moves.push({
-              :moves => prev_moves + ["#{start} to #{index}"],
-              :board => new_board(new_knights)
-            })
-          end
+          moves.push({
+            :moves => prev_moves + ["#{start} to #{end_index}"],
+            :board => new_board(new_knights)
+          })
         end
       end
 
@@ -118,6 +115,10 @@ class Board
 
     fmt % @knights.values_at(*@@indexes)
   end
+
+  def inspect
+    @knights.inspect
+  end
 end
 
 def solve(start_knights, end_knights)
@@ -127,7 +128,7 @@ def solve(start_knights, end_knights)
   contexts = [[{:moves => [], :board => start_board}]]
 
   loop do
-    puts("Checking for solutions that take %3d moves. %5d new board states" % [
+    puts("Checking for solutions that take %3d moves. %7d new board states" % [
       contexts.length - 1,
       contexts.last.length
     ])
