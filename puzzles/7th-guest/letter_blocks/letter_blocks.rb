@@ -2,12 +2,6 @@
 
 require 'set'
 
-# Initial block layout
-#
-# D A T
-# Y O B
-# T E G
-
 class Board
   @@directions   = [:forward, :backward]
   @@word_indexes = {
@@ -19,15 +13,15 @@ class Board
     :verticalRight    => [2, 5, 8]
   }
 
-  def initialize(blocks, legal_words, prev_state = Set.new)
-    @blocks      = blocks
-    @legal_words = legal_words
-    @prev_state  = prev_state
+  def initialize(blocks, end_blocks, prev_state = Set.new)
+    @blocks     = blocks
+    @end_blocks = end_blocks
+    @prev_state = prev_state
     raise "Illegal board layout" unless @blocks.size == 9
   end
 
   def new_board(new_blocks)
-    Board.new(new_blocks, @legal_words, @prev_state)
+    Board.new(new_blocks, @end_blocks, @prev_state)
   end
 
   def shift_blocks(direction, indexes)
@@ -69,10 +63,7 @@ class Board
   end
 
   def solved?
-    @@word_indexes.values.all? do |indexes|
-      word = '%s%s%s' % @blocks.values_at(*indexes)
-      @legal_words.include?(word)
-    end
+    @blocks == @end_blocks
   end
 
   def to_s
@@ -80,8 +71,8 @@ class Board
   end
 end
 
-def solve(legal_words, start_blocks)
-  start_board = Board.new start_blocks, legal_words
+def solve(start_blocks, end_blocks)
+  start_board = Board.new start_blocks, end_blocks
   puts "Looking for solution for #{start_board}"
 
   contexts = [[{:moves => [], :board => start_board}]]
@@ -113,12 +104,10 @@ initial_blocks = %w{
   T E G
 }
 
-legal_words = Set.new
+final_blocks = %w{
+  G E T
+  B O Y
+  T A D
+}
 
-File.open('three_letter_words.txt', 'r') do |file|
-  while line = file.gets
-    legal_words.add(line.chomp)
-  end
-end
-
-solve legal_words, initial_blocks
+solve initial_blocks, final_blocks
