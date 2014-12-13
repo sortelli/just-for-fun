@@ -4,7 +4,7 @@ require 'bundler/setup'
 require 'bfs_brute_force'
 require 'set'
 
-class LetterBlocksContext < BfsBruteForce::Context
+class LetterBlocksState < BfsBruteForce::State
   @@directions   = [:forward, :backward]
   @@word_indexes = {
     :horizontalTop    => [0, 1, 2],
@@ -41,13 +41,13 @@ class LetterBlocksContext < BfsBruteForce::Context
     blocks
   end
 
-  def next_moves(already_seen)
+  def next_states(already_seen)
     @@word_indexes.each do |(name, indexes)|
       @@directions.each do |direction|
         new_blocks = shift_blocks direction, indexes
 
         if already_seen.add?(new_blocks)
-          yield "#{name}#{direction.capitalize}", LetterBlocksContext.new(new_blocks, @end_blocks)
+          yield "#{name}#{direction.capitalize}", LetterBlocksState.new(new_blocks, @end_blocks)
         end
       end
     end
@@ -75,4 +75,4 @@ final_blocks = %w{
 }
 
 solver = BfsBruteForce::Solver.new
-solver.solve(LetterBlocksContext.new(initial_blocks, final_blocks))
+solver.solve(LetterBlocksState.new(initial_blocks, final_blocks))
