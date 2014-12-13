@@ -1,0 +1,16 @@
+GIT
+  remote: https://github.com/sortelli/bfs_brute_force.git
+  revision: 54b092a48c5d487a9c81d1e214e59416928bebc4
+  branch: develop
+  specs:
+    bfs_brute_force (0.0.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bfs_brute_force!

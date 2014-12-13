@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby
 
+require 'bundler/setup'
+require 'bfs_brute_force'
 require 'set'
 
-class Board
+class LetterBlocksContext < BfsBruteForce::Context
   @@directions   = [:forward, :backward]
   @@word_indexes = {
     :horizontalTop    => [0, 1, 2],
@@ -13,15 +15,10 @@ class Board
     :verticalRight    => [2, 5, 8]
   }
 
-  def initialize(blocks, end_blocks, prev_state = Set.new)
+  def initialize(blocks, end_blocks)
     @blocks     = blocks
     @end_blocks = end_blocks
-    @prev_state = prev_state
     raise "Illegal board layout" unless @blocks.size == 9
-  end
-
-  def new_board(new_blocks)
-    Board.new(new_blocks, @end_blocks, @prev_state)
   end
 
   def shift_blocks(direction, indexes)
@@ -44,21 +41,15 @@ class Board
     blocks
   end
 
-  def next_moves(prev_moves)
-    @@word_indexes.inject([]) do |moves, (name, indexes)|
+  def next_moves(already_seen)
+    @@word_indexes.each do |(name, indexes)|
       @@directions.each do |direction|
         new_blocks = shift_blocks direction, indexes
 
-        unless @prev_state.include? new_blocks
-          @prev_state.add new_blocks
-          moves.push({
-            :moves => prev_moves + ["#{name}#{direction.capitalize}"],
-            :board => new_board(new_blocks),
-          })
+        if already_seen.add?(new_blocks)
+          yield "#{name}#{direction.capitalize}", LetterBlocksContext.new(new_blocks, @end_blocks)
         end
       end
-
-      moves
     end
   end
 
@@ -68,33 +59,6 @@ class Board
 
   def to_s
     "<Board\n  %s %s %s\n  %s %s %s\n  %s %s %s\n>" % @blocks
-  end
-end
-
-def solve(start_blocks, end_blocks)
-  start_board = Board.new start_blocks, end_blocks
-  puts "Looking for solution for #{start_board}"
-
-  contexts = [[{:moves => [], :board => start_board}]]
-
-  loop do
-    puts("Checking for solutions that take %3d moves. %5d new board states" % [
-      contexts.length - 1,
-      contexts.last.length
-    ])
-
-    contexts.last.each do |context|
-      if context[:board].solved?
-        puts "\nSolved:\n"
-        puts context[:moves].map {|m| "  #{m}"}
-        puts "\n#{context[:board]}"
-        exit 0
-      end
-    end
-
-    contexts.push(contexts.last.map {|c| c[:board].next_moves(c[:moves])}.flatten)
-
-    raise "wtf, didn't solve it" if contexts.last.size == 0
   end
 end
 
@@ -110,4 +74,5 @@ final_blocks = %w{
   T A D
 }
 
-solve initial_blocks, final_blocks
+solver = BfsBruteForce::Solver.new
+solver.solve(LetterBlocksContext.new(initial_blocks, final_blocks))
