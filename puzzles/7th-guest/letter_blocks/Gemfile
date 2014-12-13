@@ -1,3 +1,3 @@
 source "https://rubygems.org"
 
-gem "bfs_brute_force", :git => "https://github.com/sortelli/bfs_brute_force.git", :tag => "v0.1.0"
+gem "bfs_brute_force"
