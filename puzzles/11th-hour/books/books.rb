@@ -53,7 +53,7 @@ class BooksState < BfsBruteForce::State
 
       if already_seen.add?(new_books)
         new_state = BooksState.new new_books
-        yield "Move #{index}.5 to #{empty_start}.5\n#{self}\n#{new_state}", new_state
+        yield "Move #{index}.5 to #{empty_start}.5\n#{new_state}", new_state
       end
     end
   end
