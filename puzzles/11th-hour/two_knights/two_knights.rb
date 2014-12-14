@@ -2,24 +2,29 @@
 
 require 'bfs_brute_force'
 
-# Puzzle:
+# =Puzzle
 #
-#   Swap white and black knights, using standard chess moves.
+# Swap the white and black knights, using standard chess moves.
+# This puzzle appeared in the old video game, 11th Hour.
 #
-# Inital layout:
+# =Initial board layout
 #
-#    +----+
-#  4 | BK |
-#    +----+----+----+----+
-#  3 |    |    |    | WK |
-#    +----+----+----+----+
-#  2 | BK | WK |    |
-#    +----+----+----+
-#  1 |    |    |
-#    +----+----+
-#      a    b    c    d
+# BK = Black Knight
+# WK = White Knight
+#
+#       +----+
+#     4 | BK |
+#       +----+----+----+----+
+#     3 |    |    |    | WK |
+#       +----+----+----+----+
+#     2 | BK | WK |    |
+#       +----+----+----+
+#     1 |    |    |
+#       +----+----+
+#         a    b    c    d
 
 class KnightsState < BfsBruteForce::State
+  # Legal moves: from_position => [to_position, ...]
   @@moves = {
     :a1 => [:b3, :c2],
     :a2 => [:c3],
@@ -34,6 +39,7 @@ class KnightsState < BfsBruteForce::State
   }
 
   def initialize(knights = nil)
+    # State of the board: position => knight
     @knights = knights || {
       :a2 => :BK,
       :a4 => :BK,
@@ -42,6 +48,7 @@ class KnightsState < BfsBruteForce::State
     }
   end
 
+  # (see BfsBruteForce::State#solved)
   def solved?
     @knights == {
       :a2 => :WK,
@@ -51,6 +58,8 @@ class KnightsState < BfsBruteForce::State
     }
   end
 
+  # Yield all not previously seen states from the current state
+  # (see BfsBruteForce::State#next_states)
   def next_states(already_seen)
     @knights.flat_map do |(from, knight)|
       @@moves[from].reject {|to| @knights[to]}.map {|to| [from, to, knight]}
