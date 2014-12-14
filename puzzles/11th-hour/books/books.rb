@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'bfs_brute_force'
-require 'set'
 
 # Puzzle:
 #
@@ -52,8 +51,10 @@ class BooksState < BfsBruteForce::State
       new_books[index]     = :_
       new_books[index + 1] = :_
 
-      new_state = BooksState.new new_books
-      yield "Move #{index}.5 to #{empty_start}.5\n#{self}\n#{new_state}", new_state
+      if already_seen.add?(new_books)
+        new_state = BooksState.new new_books
+        yield "Move #{index}.5 to #{empty_start}.5\n#{self}\n#{new_state}", new_state
+      end
     end
   end
 
