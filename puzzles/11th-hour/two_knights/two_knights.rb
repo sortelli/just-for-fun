@@ -59,13 +59,30 @@ class KnightsState < BfsBruteForce::State
       new_knights.delete from
 
       if already_seen.add?(new_knights)
-        yield "Move #{knight} from #{from} to #{to}", KnightsState.new(new_knights)
+        state = KnightsState.new new_knights
+        move  = "Move #{knight} from #{from} to #{to}\n#{state}"
+        yield move, state
       end
     end
   end
 
   def to_s
-    @knights.inspect
+    fmt = %q{
+        +----+
+      4 | %s |
+        +----+----+----+----+
+      3 | %s | %s | %s | %s |
+        +----+----+----+----+
+      2 | %s | %s | %s |
+        +----+----+----+
+      1 | %s | %s |
+        +----+----+
+          a    b    c    d
+    }
+
+    fmt % [:a4, :a3, :b3, :c3, :d3, :a2, :b2, :c2, :a1, :b1].map do |index|
+      @knights[index] || '  '
+    end
   end
 end
 
