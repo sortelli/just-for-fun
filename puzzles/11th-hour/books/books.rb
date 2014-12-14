@@ -27,11 +27,11 @@ class BooksState < BfsBruteForce::State
 
   def solved?
     @books == [
-      :R, :R,
-      :R, :R,
-      :_, :_,
       :G, :G,
-      :G, :G
+      :G, :G,
+      :_, :_,
+      :R, :R,
+      :R, :R
     ]
   end
 
