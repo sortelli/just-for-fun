@@ -19,7 +19,7 @@
 #
 ##############################################################
 
-require 'set'
+require 'bfs_brute_force'
 
 class Board
   @@indexes = [
@@ -67,36 +67,26 @@ class Board
     h
   end
 
-  def initialize(start_knights, end_knights, nil_index, prev_state = Set.new)
+  def initialize(start_knights, end_knights, nil_index = nil)
     @knights     = start_knights
     @end_knights = end_knights
-    @nil_index   = nil_index
-    @prev_state  = prev_state
+    @nil_index   = nil_index || @knights.find {|_, v| v.nil?}[0]
     raise "Illegal board layout" unless @knights.size == 25
   end
 
-  def new_board(new_knights, new_nil_index)
-    Board.new(new_knights, @end_knights, new_nil_index, @prev_state)
-  end
-
-  def next_moves(prev_moves)
-    @@legal_moves_to_square[@nil_index].inject([]) do |moves, start_index|
+  def next_states(already_seen)
+    @@legal_moves_to_square[@nil_index].each do |start_index|
       new_knights = @knights.dup
       temp = new_knights[start_index]
       new_knights[start_index] = new_knights[@nil_index]
       new_knights[@nil_index] = temp
 
-      state_key = new_knights.values_at(*@@indexes)
-      unless @prev_state.include?(state_key)
-        @prev_state.add(state_key)
+      if already_seen.add?(new_knights)
+        move  = "#{start_index} to #{@nil_index}"
+        board = Board.new(new_knights, @end_knights, start_index)
 
-        moves.push({
-          :moves => prev_moves + ["#{start_index} to #{@nil_index}"],
-          :board => new_board(new_knights, start_index)
-        })
+        yield move, board
       end
-
-      moves
     end
   end
 
@@ -122,38 +112,6 @@ class Board
 
     fmt % @knights.values_at(*@@indexes)
   end
-
-  def inspect
-    @knights.inspect
-  end
-end
-
-def solve(start_knights, end_knights)
-  nil_index, _ = start_knights.find {|_, v| v.nil?}
-  start_board = Board.new start_knights, end_knights, nil_index
-  puts "Looking for solution for #{start_board}"
-
-  contexts = [[{:moves => [], :board => start_board}]]
-
-  loop do
-    puts("Checking for solutions that take %3d moves. %7d new board states" % [
-      contexts.length - 1,
-      contexts.last.length
-    ])
-
-    contexts.last.each do |context|
-      if context[:board].solved?
-        puts "\nSolved:\n"
-        puts context[:moves].map {|m| "  #{m}"}
-        puts "\n#{context[:board]}"
-        exit 0
-      end
-    end
-
-    contexts.push(contexts.last.map {|c| c[:board].next_moves(c[:moves])}.flatten)
-
-    raise "wtf, didn't solve it" if contexts.last.size == 0
-  end
 end
 
 start_knights = {
@@ -172,4 +130,17 @@ end_knights = {
   :e1 => :BL, :e2 => :BL, :e3 => :BL, :e4 => :BL, :e5 => :BL
 }
 
-solve start_knights, end_knights
+=begin
+end_knights = {
+  :a1 => :BL, :a2 => :BL, :a3 => :BL, :a4 => :BL, :a5 => :BL,
+  :b1 => :WH, :b2 => :BL, :b3 => :BL, :b4 => :BL, :b5 => :BL,
+  :c1 => :WH, :c2 => :WH, :c3 => :WH, :c4 => :BL, :c5 => :BL,
+  :d1 => :WH, :d2 => :WH, :d3 => :WH, :d4 => :WH, :d5 => nil,
+  :e1 => :WH, :e2 => :WH, :e3 => :BL, :e4 => :WH, :e5 => :WH
+}
+=end
+
+solver = BfsBruteForce::Solver.new
+moves  = solver.solve(Board.new(start_knights, end_knights), $stderr).moves
+
+puts moves
