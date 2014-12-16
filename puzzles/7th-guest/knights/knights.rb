@@ -50,31 +50,58 @@ class Board
     [13, 17]
   ]
 
-  def initialize(start_knights, end_knights, nil_index = nil)
-    @knights     = start_knights
-    @end_knights = end_knights
-    @nil_index   = nil_index || @knights.index(:nn)
-    raise "Illegal board layout" unless @knights.size == 25
+  @@bitmap_index = (0..24).map {|i| 1 << i}
+  @@label_index = [
+    :a5, :b5, :c5, :d5, :e5,
+    :a4, :b4, :c4, :d4, :e4,
+    :a3, :b3, :c3, :d3, :e3,
+    :a2, :b2, :c2, :d2, :e2,
+    :a1, :b1, :c1, :d1, :e1
+  ]
+
+  def self.from_array(start_knights_array, end_knights_array)
+    array_to_bitmap = lambda do |array|
+      bitmap = array.each_with_index.inject(0) do |s, (k, i)|
+        s | (k == :WH ? @@bitmap_index[i] : 0)
+      end
+
+      [array.index(:nn), bitmap]
+    end
+
+    start_nil_index, start_knights = array_to_bitmap.call start_knights_array
+    end_nil_index,   end_knights   = array_to_bitmap.call end_knights_array
+
+    Board.new(start_knights, start_nil_index, end_knights, end_nil_index)
+  end
+
+  def initialize(knights, nil_index, end_knights, end_nil_index)
+    @knights       = knights
+    @nil_index     = nil_index
+    @end_knights   = end_knights
+    @end_nil_index = end_nil_index
   end
 
   def next_states(already_seen)
     @@legal_moves_to_square[@nil_index].each do |start_index|
-      new_knights = @knights.dup
-      temp = new_knights[start_index]
-      new_knights[start_index] = new_knights[@nil_index]
-      new_knights[@nil_index] = temp
+      is_white = (@knights & @@bitmap_index[start_index]) > 0
 
-      if already_seen.add?(new_knights)
-        move  = "#{start_index} to #{@nil_index}"
-        board = Board.new(new_knights, @end_knights, start_index)
-
-        yield move, board
+      new_knights = if is_white
+        (@knights | @@bitmap_index[@nil_index]) & ~(@@bitmap_index[start_index])
+      else
+        @knights
       end
+
+     if already_seen.add?((start_index * 1000000000) + new_knights)
+       move  = "#{@@label_index[start_index]} to #{@@label_index[@nil_index]}"
+       board = Board.new(new_knights, start_index, @end_knights, @end_nil_index)
+
+       yield move, board
+     end
     end
   end
 
   def solved?
-    @knights == @end_knights
+    @nil_index == @end_nil_index && @knights == @end_knights
   end
 
   def to_s
@@ -93,7 +120,10 @@ class Board
          a    b    c    d    e
     }
 
-    fmt % @knights
+    board = (0..24).map {|i| (@knights & @@bitmap_index[i]) > 0 ? :WH : :BL}
+    board[@nil_index] = nil
+
+    fmt % board
   end
 end
 
@@ -113,7 +143,8 @@ end_knights = [
   :WH, :BL, :BL, :BL, :BL
 ]
 
+start  = Board.from_array(start_knights, end_knights)
 solver = BfsBruteForce::Solver.new
-moves  = solver.solve(Board.new(start_knights, end_knights), $stderr).moves
+moves  = solver.solve(start, $stdout).moves
 
 puts moves
