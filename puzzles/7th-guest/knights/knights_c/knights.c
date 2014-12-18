@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 int START_KNIGHTS             = 0x1ee6310;
 int START_KNIGHTS_EMPTY_INDEX = 12;
@@ -46,26 +47,26 @@ char *LABEL_INDEX[] = {
 };
 
 int LEGAL_MOVES_TO_SQUARE[][9] = {
-  {7, 11, -1},
-  {8, 10, 12, -1},
-  {5, 9, 11, 13, -1},
-  {6, 12, 14, -1},
-  {7, 13, -1},
-  {2, 12, 16, -1},
-  {3, 13, 15, 17, -1},
-  {0, 4, 10, 14, 16, 18, -1},
-  {1, 11, 17, 19, -1},
-  {2, 12, 18, -1},
-  {1, 7, 17, 21, -1},
-  {0, 2, 8, 18, 20, 22, -1},
-  {1, 3, 5, 9, 15, 19, 21, 23, -1},
-  {2, 4, 6, 16, 22, 24, -1},
-  {3, 7, 17, 23, -1},
-  {6, 12, 22, -1},
-  {5, 7, 13, 23, -1},
-  {6, 8, 10, 14, 20, 24, -1},
-  {7, 9, 11, 21, -1},
-  {8, 12, 22, -1},
+  { 7, 11, -1},
+  { 8, 10, 12, -1},
+  { 5,  9, 11, 13, -1},
+  { 6, 12, 14, -1},
+  { 7, 13, -1},
+  { 2, 12, 16, -1},
+  { 3, 13, 15, 17, -1},
+  { 0,  4, 10, 14, 16, 18, -1},
+  { 1, 11, 17, 19, -1},
+  { 2, 12, 18, -1},
+  { 1,  7, 17, 21, -1},
+  { 0,  2,  8, 18, 20, 22, -1},
+  { 1,  3,  5,  9, 15, 19, 21, 23, -1},
+  { 2,  4,  6, 16, 22, 24, -1},
+  { 3,  7, 17, 23, -1},
+  { 6, 12, 22, -1},
+  { 5,  7, 13, 23, -1},
+  { 6,  8, 10, 14, 20, 24, -1},
+  { 7,  9, 11, 21, -1},
+  { 8, 12, 22, -1},
   {11, 17, -1},
   {10, 12, 18, -1},
   {11, 13, 15, 19, -1},
@@ -102,21 +103,85 @@ void free_state(State *state);
 void enqueue_state(StateQueue* queue, State *state);
 State *dequeue_state(StateQueue* queue);
 
-unsigned int state_hash(State *state);
-int is_solved(State *state);
+unsigned int state_hash(int empty_index, int knights);
+int is_solved(int empty_index, int knights);
 
 int main(int argc, char **argv) {
+  StateQueue queue;
+  State *state;
+  int tries;
+  char *already_queued;
+  size_t buf_size = sizeof (char) * 0x3ffffff0;
+
+  if (!(already_queued = malloc(buf_size))) {
+    fprintf(stderr, "malloc() failed, reason: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  memset(already_queued, '\0', buf_size);
+  memset(&queue,         '\0', sizeof (queue));
+
+  state = new_state(NULL, START_KNIGHTS_EMPTY_INDEX, START_KNIGHTS);
+  tries = 0;
+  enqueue_state(&queue, state);
+  already_queued[state_hash(START_KNIGHTS_EMPTY_INDEX, START_KNIGHTS)] = 1;
+
+  while (queue.size > 0) {
+    int empty_index, knights;
+    int *legal_move;
+
+    tries += 1;
+    state = dequeue_state(&queue);
+
+    empty_index = state->current->empty_index;
+    knights     = state->current->knights;
+
+    if ((tries % 10000) == 0) {
+      fprintf(stderr, "Checking %d tries. Queue size: %d\n", tries, queue.size);
+    }
+
+    if (is_solved(state->current->empty_index, state->current->knights)) {
+      printf("Moves:\n");
+      print_moves(state->moves);
+      break;
+    }
+
+    for (legal_move = LEGAL_MOVES_TO_SQUARE[empty_index];
+        *legal_move != -1;
+       ++legal_move) {
+      int start_index, is_white, new_knights, hash;
+
+      start_index = *legal_move;
+      is_white    = (knights & BITMAP_INDEX[start_index]) > 0;
+
+      if (is_white) {
+        new_knights = (knights | BITMAP_INDEX[empty_index]) & ~BITMAP_INDEX[start_index];
+      }
+      else {
+        new_knights = knights;
+      }
+
+      hash = state_hash(start_index, new_knights);
+
+      if (!already_queued[hash]) {
+        already_queued[hash] = 1;
+        enqueue_state(&queue, new_state(state->moves, start_index, new_knights));
+      }
+    }
+
+    free_state(state);
+  }
 
   return 0;
 }
 
-unsigned int state_hash(State *state) {
-  return (unsigned int) (state->current->knights << 5) + state->current->empty_index;
+unsigned int state_hash(int empty_index, int knights) {
+  return (unsigned int) (knights << 5) + empty_index;
 }
 
-int is_solved(State *state) {
-  return state->current->empty_index == END_KNIGHTS_EMPTY_INDEX && \
-         state->current->knights     == END_KNIGHTS;
+int is_solved(int empty_index, int knights) {
+  return empty_index == END_KNIGHTS_EMPTY_INDEX && \
+         knights     == END_KNIGHTS;
 }
 
 Move *new_move(int empty_index, int knights) {
@@ -155,7 +220,7 @@ void print_moves(Move *moves) {
 
 char *move_to_str(Move *move) {
   int i;
-  char knight_labels[25][3];
+  char labels[25][3];
   char *str;
   char *fmt = "      +----+----+----+----+----+\n"
               "    5 | %2s | %2s | %2s | %2s | %2s |\n"
@@ -174,19 +239,19 @@ char *move_to_str(Move *move) {
 
   for (i = 0; i < 25; ++i) {
     if (i == move->empty_index) {
-      strcpy(knight_labels[i], "  ");
+      strcpy(labels[i], "  ");
     }
     else {
-      strcpy(knight_labels[i], (move->knights & BITMAP_INDEX[i]) > 0 ? "WH" : "BL");
+      strcpy(labels[i], (move->knights & BITMAP_INDEX[i]) > 0 ? "WH" : "BL");
     }
   }
 
   snprintf(str, strlen(fmt), fmt,
-    knight_labels[ 0], knight_labels[ 1], knight_labels[ 2], knight_labels[ 3], knight_labels[ 4],
-    knight_labels[ 5], knight_labels[ 6], knight_labels[ 7], knight_labels[ 8], knight_labels[ 9],
-    knight_labels[10], knight_labels[11], knight_labels[12], knight_labels[13], knight_labels[14],
-    knight_labels[15], knight_labels[16], knight_labels[17], knight_labels[18], knight_labels[19],
-    knight_labels[20], knight_labels[21], knight_labels[22], knight_labels[23], knight_labels[24]
+    labels[ 0], labels[ 1], labels[ 2], labels[ 3], labels[ 4],
+    labels[ 5], labels[ 6], labels[ 7], labels[ 8], labels[ 9],
+    labels[10], labels[11], labels[12], labels[13], labels[14],
+    labels[15], labels[16], labels[17], labels[18], labels[19],
+    labels[20], labels[21], labels[22], labels[23], labels[24]
   );
 
   return str;
