@@ -27,15 +27,14 @@
 #define START_KNIGHTS 0x1ee6310
 #define END_KNIGHTS   0x0118cef
 
-typedef struct MoveNode {
-  char *move;
-  struct MoveNode *next;
-  struct MoveNode *end;
-} MoveNode;
+typedef struct Move {
+  int empty_index;
+  int knights;
+  struct Move *next;
+} Move;
 
 typedef struct State {
-  MoveNode *moves;
-  int value;
+  Move *moves;
   struct State *next;
 } State;
 
@@ -45,12 +44,10 @@ typedef struct {
   int size;
 } StateQueue;
 
-MoveNode *new_move_node(char *move);
-MoveNode *copy_move_node(MoveNode *moves);
-void push_move_node(MoveNode* moves, char *move);
-void free_move_node(MoveNode *move_node);
+Move *new_move(int empty_index, int knights);
+void free_moves(Move *moves);
 
-State* new_state(MoveNode *prev_moves, char *move, int value);
+State* new_state(Move *moves, int empty_index, int knights);
 void free_state(State *state);
 
 void enqueue_state(StateQueue* queue, State *state);
@@ -104,65 +101,48 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-MoveNode *new_move_node(char *move) {
-  MoveNode* node = malloc(sizeof (MoveNode));
+Move *new_move(int empty_index, int knights) {
+  Move* move = malloc(sizeof (Move));
 
-  node->move = strdup(move);
-  node->next = NULL;
-  node->end  = NULL;
+  move->empty_index = empty_index;
+  move->knights     = knights;
+  move->next        = NULL;
 
-  return node;
+  return move;
 }
 
-void push_move_node(MoveNode* moves, char *move) {
-  if (moves->end) {
-    moves->end->next = new_move_node(move);
-    moves->end       = moves->end->next;
-  }
-  else {
-    moves->next = new_move_node(move);
-    moves->end  = moves->next;
+void free_moves(Move* moves) {
+  while (moves) {
+    Move* move = moves;
+    moves = moves->next;
+    free(move);
   }
 }
 
-MoveNode *copy_move_node(MoveNode *moves) {
-  MoveNode *node, *start = new_move_node(moves->move);
-
-  for (node = moves->next; node; node = node->next) {
-    push_move_node(start, node->move);
-  }
-
-  return start;
-}
-
-void free_move_node(MoveNode* move_node) {
-  while (move_node) {
-    MoveNode* node = move_node;
-    move_node = node->next;
-    free(node->move);
-    free(node);
-  }
-}
-
-State* new_state(MoveNode *prev_moves, char *move, int value) {
+State* new_state(Move *moves, int empty_index, int knights) {
   State *state = malloc(sizeof (State));
 
-  state->value = value;
-  state->next  = NULL;
+  state->next = NULL;
 
-  if (prev_moves) {
-    state->moves = copy_move_node(prev_moves);
-    push_move_node(state->moves, move);
+  if (moves) {
+    Move *last;
+    last = state->moves = new_move(moves->empty_index, moves->knights);
+
+    for (moves = moves->next; moves; moves = moves->next) {
+      last = last->next = new_move(moves->empty_index, moves->knights);
+    }
+
+    last->next = new_move(empty_index, knights);
   }
   else {
-    state->moves = new_move_node(move);
+    state->moves = new_move(empty_index, knights);
   }
 
   return state;
 }
 
 void free_state(State *state) {
-  free_move_node(state->moves);
+  free_moves(state->moves);
   free(state);
 }
 
