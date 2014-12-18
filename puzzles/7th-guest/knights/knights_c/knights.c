@@ -24,8 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-int START_KNIGHTS = 0x1ee6310;
-int END_KNIGHTS   = 0x0118cef;
+int START_KNIGHTS             = 0x1ee6310;
+int START_KNIGHTS_EMPTY_INDEX = 12;
+int END_KNIGHTS               = 0x0118cef;
+int END_KNIGHTS_EMPTY_INDEX   = 12;
 
 int BITMAP_INDEX[] = {
   0x0000001, 0x0000002, 0x0000004, 0x0000008, 0x0000010,
@@ -79,6 +81,7 @@ typedef struct Move {
 
 typedef struct State {
   Move *moves;
+  Move *current;
   struct State *next;
 } State;
 
@@ -99,11 +102,22 @@ void free_state(State *state);
 void enqueue_state(StateQueue* queue, State *state);
 State *dequeue_state(StateQueue* queue);
 
+unsigned int state_hash(State *state);
+int is_solved(State *state);
+
 int main(int argc, char **argv) {
 
   return 0;
 }
 
+unsigned int state_hash(State *state) {
+  return (unsigned int) (state->current->knights << 5) + state->current->empty_index;
+}
+
+int is_solved(State *state) {
+  return state->current->empty_index == END_KNIGHTS_EMPTY_INDEX && \
+         state->current->knights     == END_KNIGHTS;
+}
 
 Move *new_move(int empty_index, int knights) {
   Move* move = malloc(sizeof (Move));
@@ -199,10 +213,10 @@ State* new_state(Move *moves, int empty_index, int knights) {
       last = last->next = new_move(moves->empty_index, moves->knights);
     }
 
-    last->next = new_move(empty_index, knights);
+    state->current = last->next   = new_move(empty_index, knights);
   }
   else {
-    state->moves = new_move(empty_index, knights);
+    state->current = state->moves = new_move(empty_index, knights);
   }
 
   return state;
