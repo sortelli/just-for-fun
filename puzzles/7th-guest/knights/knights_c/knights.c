@@ -134,6 +134,7 @@ int main(int argc, char **argv) {
     state = dequeue_state(&queue);
 
     if (is_solved(state)) {
+      printf("Solved in %d tries\n", tries);
       printf("Moves:\n");
       print_state(state);
       break;
