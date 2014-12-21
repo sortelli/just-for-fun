@@ -82,14 +82,9 @@ int LEGAL_MOVES_TO_INDEX[][9] = {
 
 typedef uint32_t Board;
 
-typedef struct Move {
-  Board board;
-  struct Move *next;
-} Move;
-
 typedef struct State {
-  Move *moves;
-  Move *current;
+  Board *boards;
+  Board *last;
   struct State *next;
 } State;
 
@@ -99,18 +94,16 @@ typedef struct {
   int size;
 } StateQueue;
 
-Move *new_move(Board board);
-void print_moves(Move *moves);
-char *move_to_str(Move *moves);
-void free_moves(Move *moves);
+char *board_to_str(Board board);
 
-State* new_state(Move *moves, Board board);
+State* new_state(State *prev_state, Board board);
 void free_state(State *state);
+void print_state(State *state);
+int is_solved(State *state);
 
-void enqueue_state(StateQueue* queue, State *state);
-State *dequeue_state(StateQueue* queue);
+void enqueue_state(StateQueue *queue, State *state);
+State *dequeue_state(StateQueue *queue);
 
-int is_solved(Board board);
 
 int main(int argc, char **argv) {
   StateQueue queue;
@@ -140,17 +133,17 @@ int main(int argc, char **argv) {
     tries += 1;
     state = dequeue_state(&queue);
 
-    if (is_solved(state->current->board)) {
+    if (is_solved(state)) {
       printf("Moves:\n");
-      print_moves(state->moves);
+      print_state(state);
       break;
     }
 
-    if ((tries % 10000) == 0) {
+    if ((tries % 100000) == 0) {
       fprintf(stderr, "Checking %d tries. Queue size: %d\n", tries, queue.size);
     }
 
-    board      = state->current->board;
+    board      = *(state->last);
     empty_spot = EMPTY_SPOT_INDEX(board);
 
     for (next = LEGAL_MOVES_TO_INDEX[empty_spot]; *next != -1; ++next) {
@@ -158,7 +151,7 @@ int main(int argc, char **argv) {
 
       if (!already_queued[new_board]) {
         already_queued[new_board] = 1;
-        enqueue_state(&queue, new_state(state->moves, new_board));
+        enqueue_state(&queue, new_state(state, new_board));
       }
     }
 
@@ -168,49 +161,9 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-int is_solved(Board board) {
-  return board == END_BOARD;
-}
-
-Move *new_move(Board board) {
-  Move* move = malloc(sizeof (Move));
-
-  move->board = board;
-  move->next  = NULL;
-
-  return move;
-}
-
-
-void print_moves(Move *moves) {
-  Move *move;
-  int prev_empty_index = -1;
-  int empty_spot;
-  char *str;
-
-  for (move = moves; move; move = move->next) {
-    empty_spot = EMPTY_SPOT_INDEX(move->board);
-
-    if (prev_empty_index >= 0) {
-      printf(
-        "Move %s to %s:\n",
-        LABEL_INDEX[empty_spot],
-        LABEL_INDEX[prev_empty_index]
-      );
-    }
-
-    str = move_to_str(move);
-    printf("%s\n", str);
-    free(str);
-
-    prev_empty_index = empty_spot;
-  }
-}
-
-char *move_to_str(Move *move) {
-  Board board    = move->board;
+char *board_to_str(Board board) {
   int empty_spot = EMPTY_SPOT_INDEX(board);
-  int i;
+  int spot;
   char labels[25][3];
   char *str;
   char *fmt = "      +----+----+----+----+----+\n"
@@ -228,12 +181,12 @@ char *move_to_str(Move *move) {
 
   str = strdup(fmt);
 
-  for (i = 0; i < 25; ++i) {
-    if (i == empty_spot) {
-      strcpy(labels[i], "  ");
+  for (spot = 0; spot < 25; ++spot) {
+    if (spot == empty_spot) {
+      strcpy(labels[spot], "  ");
     }
     else {
-      strcpy(labels[i], IS_WHITE_KNIGHT(board, i) ? "WH" : "BL");
+      strcpy(labels[spot], IS_WHITE_KNIGHT(board, spot) ? "WH" : "BL");
     }
   }
 
@@ -248,39 +201,63 @@ char *move_to_str(Move *move) {
   return str;
 }
 
-void free_moves(Move* moves) {
-  while (moves) {
-    Move* move = moves;
-    moves = moves->next;
-    free(move);
+void print_state(State *state) {
+  Board *board;
+  int prev_empty = -1;
+  int empty;
+  char *str;
+
+  for (board = state->boards; board <= state->last; ++board) {
+    empty = EMPTY_SPOT_INDEX(*board);
+
+    if (prev_empty >= 0) {
+      printf("Move %s to %s:\n", LABEL_INDEX[empty], LABEL_INDEX[prev_empty]);
+    }
+
+    str = board_to_str(*board);
+    printf("%s\n", str);
+    free(str);
+
+    prev_empty = empty;
   }
 }
 
-State* new_state(Move *moves, Board board) {
+State* new_state(State *prev_state, Board board) {
   State *state = malloc(sizeof (State));
 
   state->next = NULL;
 
-  if (moves) {
-    Move *last;
-    last = state->moves = new_move(moves->board);
+  if (prev_state) {
+    size_t size = (prev_state->last - prev_state->boards) + 1;
 
-    for (moves = moves->next; moves; moves = moves->next) {
-      last = last->next = new_move(moves->board);
+    if (!(state->boards = calloc(size + 1, sizeof (Board)))) {
+      fprintf(stderr, "calloc() failed, reason: %s\n", strerror(errno));
+      exit(2);
     }
 
-    state->current = last->next   = new_move(board);
+    memcpy(state->boards, prev_state->boards, size * sizeof (Board));
+    state->last = state->boards + size;
+    state->boards[size] = board;
   }
   else {
-    state->current = state->moves = new_move(board);
+    if (!(state->boards = malloc(sizeof (Board)))) {
+      fprintf(stderr, "malloc() failed, reason: %s\n", strerror(errno));
+      exit(3);
+    }
+    state->last = state->boards;
+    state->boards[0] = board;
   }
 
   return state;
 }
 
 void free_state(State *state) {
-  free_moves(state->moves);
+  free(state->boards);
   free(state);
+}
+
+int is_solved(State *state) {
+  return *(state->last) == END_BOARD;
 }
 
 void enqueue_state(StateQueue* queue, State *state) {
