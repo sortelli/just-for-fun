@@ -125,9 +125,22 @@ class PortraitState < BfsBruteForce::State
       end
 
       if already_seen.add?(next_cards)
-        yield "Flip #{@@labels[flipped_index]}", PortraitState.new(next_cards)
+        yield "Flip #{@@labels[flipped_index]}\n#{self}", PortraitState.new(next_cards)
       end
     end
+  end
+
+  def to_s
+    %q{
+       +----+----+----+
+     3 | %2s | %2s | %2s |
+       +----+----+----+
+     2 | %2s | %2s | %2s |
+       +----+----+----+
+     1 | %2s | %2s | %2s |
+       +----+----+----+
+         A    B    C
+    } % @cards
   end
 end
 
