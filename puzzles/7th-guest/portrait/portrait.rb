@@ -25,7 +25,7 @@ require 'bfs_brute_force'
 #     F1 -> F2
 #     F2 -> F3
 #     F3 -> F1
-# 
+#
 # Flipping a card will also flip some of the cards it is next to,
 # using the following rules:
 #
@@ -58,16 +58,76 @@ require 'bfs_brute_force'
 #       +----+----+----+
 #         A    B    C
 
+class Card
+  attr_reader :face
+
+  def initialize(face)
+    @face = face
+  end
+
+  def flip
+    next_face = case @face
+      when :F1 then :F2
+      when :F2 then :F3
+      else          :F1
+    end
+
+    Card.new next_face
+  end
+
+  def ==(other)
+    @face == other.face
+  end
+
+  def hash
+    @face.hash
+  end
+
+  alias :eql? :==
+
+  def to_s
+    @face.to_s
+  end
+end
+
 class PortraitState < BfsBruteForce::State
+  @@solution = [Card.new(:F1)] * 9
+  # Board indexed in follow card order: A3,B3,C3,A2,B2,C2,A1,B1,C1
+  @@labels = %w{
+    A3 B3 C3
+    A2 B2 C2
+    A1 B1 C1
+  }
+  @@flips = [
+    [0, 1, 3, 4],
+    [0, 1, 2],
+    [1, 2, 4, 5],
+    [0, 3, 6],
+    [0, 2, 4, 6, 8],
+    [2, 5, 8],
+    [3, 4, 6, 7],
+    [6, 7, 8],
+    [4, 5, 7, 8]
+  ]
+
   def initialize(cards)
     @cards = cards
   end
 
   def solved?
-    false
+    @cards == @@solution
   end
 
   def next_states(already_seen)
+    @@flips.each_with_index do |flip, flipped_index|
+      next_cards = @cards.each_with_index.map do |card, index|
+        flip.include?(index) ? card.flip : card
+      end
+
+      if already_seen.add?(next_cards)
+        yield "Flip #{@@labels[flipped_index]}", PortraitState.new(next_cards)
+      end
+    end
   end
 end
 
@@ -76,7 +136,7 @@ unless ARGV.size == 0 or ARGV.size == 9
   exit 1
 end
 
-cards = case
+values = case
   when ARGV.size == 9 && ARGV.all? {|a| ("F1".."F3").include?(a)}
     ARGV
   when ARGV.size == 0
@@ -85,6 +145,7 @@ cards = case
     raise "The value of each card labeled [A-C][1-3] must be one of: F1 or F2 or F3"
 end
 
+cards  = values.map {|v| Card.new(v)}
 solver = BfsBruteForce::Solver.new
 moves  = solver.solve(PortraitState.new(cards)).moves
 
