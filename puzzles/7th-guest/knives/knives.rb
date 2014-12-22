@@ -68,7 +68,10 @@ class KnivesState < BfsBruteForce::State
       new_knives[move[:to  ]] = true
 
       if already_seen.add?(new_knives)
-        yield "Move knife #{move[:from]}", KnivesState.new(new_knives)
+        new_state = KnivesState.new(new_knives)
+        move      = "Move knife #{move[:from]} -> #{move[:to]}\n#{new_state}"
+
+        yield move, new_state
       end
     end
   end
