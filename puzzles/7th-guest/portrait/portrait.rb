@@ -158,7 +158,7 @@ values = case
     raise "The value of each card labeled [A-C][1-3] must be one of: F1 or F2 or F3"
 end
 
-cards  = values.map {|v| Card.new(v)}
+cards  = values.map {|v| Card.new(v.to_sym)}
 solver = BfsBruteForce::Solver.new
 moves  = solver.solve(PortraitState.new(cards)).moves
 
