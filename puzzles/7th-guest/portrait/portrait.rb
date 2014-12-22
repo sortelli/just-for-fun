@@ -70,3 +70,22 @@ class PortraitState < BfsBruteForce::State
   def next_states(already_seen)
   end
 end
+
+unless ARGV.size == 0 or ARGV.size == 9
+  $stderr.puts "usage: #{File.basename(__FILE__)} (A3 B3 C3 A2 B2 C2 A1 B1 C1)"
+  exit 1
+end
+
+cards = case
+  when ARGV.size == 9 && ARGV.all? {|a| ("F1".."F3").include?(a)}
+    ARGV
+  when ARGV.size == 0
+    %w{F3 F1 F3 F2 F2 F1 F1 F1 F2}
+  else
+    raise "The value of each card labeled [A-C][1-3] must be one of: F1 or F2 or F3"
+end
+
+solver = BfsBruteForce::Solver.new
+moves  = solver.solve(PortraitState.new(cards)).moves
+
+puts moves
