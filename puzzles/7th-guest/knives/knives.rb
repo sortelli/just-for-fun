@@ -48,15 +48,27 @@ class KnivesState < BfsBruteForce::State
     {:from => 9, :to => 3, :jump => 6}
   ]
 
-  def initialize(knives)
-    @knives = knives
+  def initialize(knives = nil)
+    @knives = knives || [
+      false, true, true, true, true, true, true, true, true, true
+    ]
   end
 
   def solved?
-    false
+    @knives.select {|k| k}.size == 1
   end
 
   def next_states(already_seen)
+    @@moves.each.each do |move|
+      new_knives = @knives.dup
+      new_knives[move[:from]] = false
+      new_knives[move[:jump]] = false
+      new_knives[move[:to  ]] = true
+
+      if already_seen.add?(new_knives)
+        yield "Move knife #{move[:from]}", KnivesState.new(new_knives)
+      end
+    end
   end
 
   def to_s
