@@ -59,7 +59,9 @@ class KnivesState < BfsBruteForce::State
   end
 
   def next_states(already_seen)
-    @@moves.each.each do |move|
+    @@moves.each.reject do |move|
+      @knives[move[:to]]
+    end.each do |move|
       new_knives = @knives.dup
       new_knives[move[:from]] = false
       new_knives[move[:jump]] = false
