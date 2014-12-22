@@ -50,11 +50,11 @@ require 'bfs_brute_force'
 # Default Initial Layout:
 #
 #       +----+----+----+
-#     3 | F3 | F1 | F3 |
+#     3 | F3 | F3 | F2 |
 #       +----+----+----+
-#     2 | F2 | F2 | F1 |
+#     2 | F3 | F3 | F3 |
 #       +----+----+----+
-#     1 | F1 | F1 | F2 |
+#     1 | F3 | F3 | F3 |
 #       +----+----+----+
 #         A    B    C
 
@@ -153,7 +153,7 @@ values = case
   when ARGV.size == 9 && ARGV.all? {|a| ("F1".."F3").include?(a)}
     ARGV
   when ARGV.size == 0
-    %w{F3 F1 F3 F2 F2 F1 F1 F1 F2}
+    %w{F3 F3 F2 F3 F3 F3 F3 F3 F3}
   else
     raise "The value of each card labeled [A-C][1-3] must be one of: F1 or F2 or F3"
 end
