@@ -1,0 +1,10 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    bfs_brute_force (0.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bfs_brute_force
