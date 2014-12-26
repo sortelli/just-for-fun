@@ -1,55 +1,67 @@
 #!/usr/bin/env ruby
 
-def copy_board(board)
-  board.dup.map {|r| r.dup}
-end
+require 'bfs_brute_force'
 
-def print_board(board)
-  board.each do |r|
-    puts r.join(" ")
+# Puzzle:
+#
+# Place eight queens on a standard chess board, such that no queen
+# can attack another queen.
+#
+# This is the "Eight Queens" puzzle from an old video game, The 7th Guest.
+# This is also a classic chess puzzle found in lots of other places.
+
+class BoardState < BfsBruteForce::State
+  def initialize(board = nil)
+    @board = board || [[:empty] * 8] * 8
   end
-end
 
-def remove_invalid(board, parent_col)
-  board.each {|r| r[parent_col] = '.'}
-  board.each_with_index do |r, i|
-    x = parent_col + i + 1
-    y = parent_col - i - 1
+  def next_states(_)
+    current_row, row_index = @board.each_with_index.find {|row, _| row.include?(:empty)}
+    return if current_row.nil?
 
-    r[x] = '.' if x < r.length
-    r[y] = '.' if y >= 0
-  end
-end
+    current_row.each_with_index.select do |cell, _|
+      cell == :empty
+    end.each do |cell, cell_index|
+      new_board = @board.dup.map {|row| row.dup}
 
-def place_queen(board)
-  return nil if board.nil? or board.empty?
-  return nil unless board.first.find {|c| c == '-'}
+      new_board[row_index] = [:blocked] * @board.length
+      new_board.each_with_index do |row, index|
+        row[cell_index] = :blocked
+        offset = index - row_index
 
-  row = board.shift
-  orig_row   = row.dup
-  orig_board = copy_board board
+        if offset > 0
+          left  = cell_index - offset
+          right = cell_index + offset
 
-  row.each_with_index do |c, i|
-    if c == '-'
-      row[i] = 'Q'
-
-      return [row] if board.empty?
- 
-      board = copy_board orig_board
-      remove_invalid board, i
-
-      if b = place_queen(board)
-        row.each_with_index {|c, i| row[i] = '.' if c == '-'}
-        return b.unshift(row)       
+          row[left]  = :blocked if left >= 0
+          row[right] = :blocked if right < row.length
+        end
       end
+      new_board[row_index][cell_index] = :queen
 
-      row[i] = '-'
-    end 
+      state = BoardState.new(new_board)
+      yield state, state
+    end
   end
 
-  return nil
+  def solved?
+    @board.all? {|row| row.include?(:queen)}
+  end
+
+  def to_s
+    strings = @board.each_with_index.inject([]) do |strings, (row, index)|
+      strings << '   +---+---+---+---+---+---+---+---+'
+      strings << ' %d | %s |' % [8 - index, row.map {|c| c == :queen ? 'Q' : ' '}.join(' | ')]
+    end
+
+    strings << '   +---+---+---+---+---+---+---+---+'
+    strings << '     A   B   C   D   E   F   G   H'
+
+    strings.join("\n")
+  end
 end
 
-empty_board = copy_board([['-'] * 8] * 8)
-board = place_queen empty_board
-print_board board
+solver = BfsBruteForce::Solver.new
+moves  = solver.solve(BoardState.new).moves
+
+puts moves.last
