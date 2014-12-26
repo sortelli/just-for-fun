@@ -4,23 +4,26 @@ require 'bfs_brute_force'
 
 # Puzzle:
 #
-#  Seperate green and red books. Can only
-#  move books in pairs.
+# Separate green and red books. Can only
+# move books in pairs.
 #
-# Inital layout:
+# This is the "Books" puzzle from an old video game, The 11th Hour.
+#
+# Initial layout:
 #
 #  +---+---+---+---+---+---+---+---+---+---+
 #  | R | G | R | G | R | G | R | G |   |   |
 #  +---+---+---+---+---+---+---+---+---+---+
 #    0   1   2   3   4   5   6   7   8   9
+#
+#       R = Red Book
+#       G = Green Book
 
 class BooksState < BfsBruteForce::State
   def initialize(books = nil)
     @books = books || [
-      :R, :G,
-      :R, :G,
-      :R, :G,
-      :R, :G,
+      :R, :G, :R, :G,
+      :R, :G, :R, :G,
       :_,  :_
     ]
   end
@@ -28,21 +31,15 @@ class BooksState < BfsBruteForce::State
   def solved?
     @books == [
       :_, :_,
-      :G, :G,
-      :G, :G,
-      :R, :R,
-      :R, :R
+      :G, :G, :G, :G,
+      :R, :R, :R, :R
     ] || @books == [
-      :G, :G,
-      :G, :G,
+      :G, :G, :G, :G,
       :_, :_,
-      :R, :R,
-      :R, :R
+      :R, :R, :R, :R
     ] || @books == [
-      :G, :G,
-      :G, :G,
-      :R, :R,
-      :R, :R,
+      :G, :G, :G, :G,
+      :R, :R, :R, :R,
       :_, :_
     ]
   end
@@ -64,8 +61,9 @@ class BooksState < BfsBruteForce::State
       new_books[index + 1] = :_
 
       if already_seen.add?(new_books)
-        new_state = BooksState.new new_books
-        yield "Move #{index}.5 to #{empty_start}.5\n#{new_state}", new_state
+        state = BooksState.new new_books
+        move  = "Move #{index}.5 to #{empty_start}.5\n#{state}"
+        yield move, state
       end
     end
   end
@@ -83,4 +81,6 @@ class BooksState < BfsBruteForce::State
 end
 
 solver = BfsBruteForce::Solver.new
-solver.solve BooksState.new
+moves  = solver.solve(BooksState.new).moves
+
+puts moves
