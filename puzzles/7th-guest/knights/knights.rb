@@ -1,27 +1,32 @@
 #!/usr/bin/env ruby
 
-##############################################################
-# Objective: Swap black and white knights
-# Inital Board layout:
+require 'bfs_brute_force'
+
+# Puzzle:
+#
+# Swap black and white knights, following standard chess rules.
+#
+# This is the "Knights" puzzle from an old video game, The 7th Guest.
+#
+# Initial Board layout:
 #
 #    +----+----+----+----+----+
 #  5 | BL | BL | BL | BL | WH |
 #    +----+----+----+----+----+
 #  4 | BL | BL | BL | WH | WH |
-#    +----+----+----+----+----+   BL = Black Knight
-#  3 | BL | BL |    | WH | WH |   WH = WHite Knight
+#    +----+----+----+----+----+
+#  3 | BL | BL |    | WH | WH |
 #    +----+----+----+----+----+
 #  2 | BL | BL | WH | WH | WH |
 #    +----+----+----+----+----+
 #  1 | BL | WH | WH | WH | WH |
 #    +----+----+----+----+----+
-#      a    b    c    d    e
+#      A    B    C    D    E
 #
-##############################################################
+#      BL = Black Knight
+#      WH = WHite Knight
 
-require 'bfs_brute_force'
-
-class Board
+class BoardState < BfsBruteForce::State
   @@legal_moves_to_square = [
     [7, 11],
     [8, 10, 12],
@@ -51,34 +56,42 @@ class Board
   ]
 
   @@bitmap_index = (0..24).map {|i| 1 << i}
+
   @@label_index = [
-    :a5, :b5, :c5, :d5, :e5,
-    :a4, :b4, :c4, :d4, :e4,
-    :a3, :b3, :c3, :d3, :e3,
-    :a2, :b2, :c2, :d2, :e2,
-    :a1, :b1, :c1, :d1, :e1
+    :A5, :B5, :C5, :D5, :E5,
+    :A4, :B4, :C4, :D4, :E4,
+    :A3, :B3, :C3, :D3, :E3,
+    :A2, :B2, :C2, :D2, :E2,
+    :A1, :B1, :C1, :D1, :E1
   ]
 
-  def self.from_array(start_knights_array, end_knights_array)
-    array_to_bitmap = lambda do |array|
-      bitmap = array.each_with_index.inject(0) do |s, (k, i)|
-        s | (k == :WH ? @@bitmap_index[i] : 0)
-      end
-
-      [array.index(:nn), bitmap]
+  def self.array_to_bitmap(*array)
+    bitmap = array.each_with_index.inject(0) do |s, (k, i)|
+      s | (k == :WH ? @@bitmap_index[i] : 0)
     end
 
-    start_nil_index, start_knights = array_to_bitmap.call start_knights_array
-    end_nil_index,   end_knights   = array_to_bitmap.call end_knights_array
-
-    Board.new(start_knights, start_nil_index, end_knights, end_nil_index)
+    [array.index(:nn), bitmap]
   end
 
-  def initialize(knights, nil_index, end_knights, end_nil_index)
-    @knights       = knights
-    @nil_index     = nil_index
-    @end_knights   = end_knights
-    @end_nil_index = end_nil_index
+  @@start_nil_index, @@start_knights = BoardState.array_to_bitmap(
+    :BL, :BL, :BL, :BL, :WH,
+    :BL, :BL, :BL, :WH, :WH,
+    :BL, :BL, :nn, :WH, :WH,
+    :BL, :BL, :WH, :WH, :WH,
+    :BL, :WH, :WH, :WH, :WH
+  )
+
+  @@end_nil_index, @@end_knights = BoardState.array_to_bitmap(
+    :WH, :WH, :WH, :WH, :BL,
+    :WH, :WH, :WH, :BL, :BL,
+    :WH, :WH, :nn, :BL, :BL,
+    :WH, :WH, :BL, :BL, :BL,
+    :WH, :BL, :BL, :BL, :BL
+  )
+
+  def initialize(knights = nil, nil_index = nil)
+    @knights   = knights   || @@start_knights
+    @nil_index = nil_index || @@start_nil_index
   end
 
   def next_states(already_seen)
@@ -91,17 +104,17 @@ class Board
         @knights
       end
 
-     if already_seen.add?((start_index * 1000000000) + new_knights)
-       move  = "#{@@label_index[start_index]} to #{@@label_index[@nil_index]}"
-       board = Board.new(new_knights, start_index, @end_knights, @end_nil_index)
+      if already_seen.add?((start_index * 1000000000) + new_knights)
+        move  = "#{@@label_index[start_index]} to #{@@label_index[@nil_index]}"
+        board = BoardState.new(new_knights, start_index)
 
-       yield move, board
-     end
+        yield move, board
+      end
     end
   end
 
   def solved?
-    @nil_index == @end_nil_index && @knights == @end_knights
+    @nil_index == @@end_nil_index && @knights == @@end_knights
   end
 
   def to_s
@@ -117,7 +130,7 @@ class Board
        +----+----+----+----+----+
      1 | %2s | %2s | %2s | %2s | %2s |
        +----+----+----+----+----+
-         a    b    c    d    e
+         A    B    C    D    E
     }
 
     board = (0..24).map {|i| (@knights & @@bitmap_index[i]) > 0 ? :WH : :BL}
@@ -127,24 +140,7 @@ class Board
   end
 end
 
-start_knights = [
-  :BL, :BL, :BL, :BL, :WH,
-  :BL, :BL, :BL, :WH, :WH,
-  :BL, :BL, :nn, :WH, :WH,
-  :BL, :BL, :WH, :WH, :WH,
-  :BL, :WH, :WH, :WH, :WH
-]
-
-end_knights = [
-  :WH, :WH, :WH, :WH, :BL,
-  :WH, :WH, :WH, :BL, :BL,
-  :WH, :WH, :nn, :BL, :BL,
-  :WH, :WH, :BL, :BL, :BL,
-  :WH, :BL, :BL, :BL, :BL
-]
-
-start  = Board.from_array(start_knights, end_knights)
 solver = BfsBruteForce::Solver.new
-moves  = solver.solve(start, $stdout).moves
+moves  = solver.solve(BoardState.new, $stdout).moves
 
 puts moves
