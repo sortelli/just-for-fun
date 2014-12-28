@@ -1,8 +1,39 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
 require 'bfs_brute_force'
-require 'set'
+
+# Puzzle:
+#
+# Shift blocks to correct orientation.
+#
+# The board is divided into a 3x3 grid of lettered blocks.
+#
+# Initial Layout:
+#
+#       +---+---+---+
+#     3 | D | A | T |
+#       +---+---+---+
+#     2 | Y | O | B |
+#       +---+---+---+
+#     1 | T | E | G |
+#       +---+---+---+
+#         A   B   C
+#
+# Blocks can be shifted forward or backwards a row or column at a
+# time.
+#
+# The puzzle is solved when the blocks are in this order:
+#
+#       +---+---+---+
+#     3 | G | E | T |
+#       +---+---+---+
+#     2 | B | O | Y |
+#       +---+---+---+
+#     1 | T | A | D |
+#       +---+---+---+
+#         A   B   C
+#
+# This is the "Letter Blocks" puzzle from an old video game, The 7th Guest.
 
 class LetterBlocksState < BfsBruteForce::State
   @@directions   = [:forward, :backward]
@@ -15,9 +46,12 @@ class LetterBlocksState < BfsBruteForce::State
     :verticalRight    => [2, 5, 8]
   }
 
-  def initialize(blocks, end_blocks)
-    @blocks     = blocks
-    @end_blocks = end_blocks
+  def initialize(blocks = nil)
+    @blocks = blocks || %w{
+      D A T
+      Y O B
+      T E G
+    }
     raise "Illegal board layout" unless @blocks.size == 9
   end
 
@@ -47,32 +81,38 @@ class LetterBlocksState < BfsBruteForce::State
         new_blocks = shift_blocks direction, indexes
 
         if already_seen.add?(new_blocks)
-          yield "#{name}#{direction.capitalize}", LetterBlocksState.new(new_blocks, @end_blocks)
+          state = LetterBlocksState.new new_blocks
+          move  = "%s%s\n%s" % [name, direction.capitalize, state]
+
+          yield move, state
         end
       end
     end
   end
 
   def solved?
-    @blocks == @end_blocks
+    @blocks == %w{
+      G E T
+      B O Y
+      T A D
+    }
   end
 
   def to_s
-    "<Board\n  %s %s %s\n  %s %s %s\n  %s %s %s\n>" % @blocks
+    %q{
+       +---+---+---+
+     3 | %s | %s | %s |
+       +---+---+---+
+     2 | %s | %s | %s |
+       +---+---+---+
+     1 | %s | %s | %s |
+       +---+---+---+
+         A   B   C
+    } % @blocks
   end
 end
 
-initial_blocks = %w{
-  D A T
-  Y O B
-  T E G
-}
-
-final_blocks = %w{
-  G E T
-  B O Y
-  T A D
-}
-
 solver = BfsBruteForce::Solver.new
-solver.solve(LetterBlocksState.new(initial_blocks, final_blocks))
+moves  = solver.solve(LetterBlocksState.new).moves
+
+puts moves
